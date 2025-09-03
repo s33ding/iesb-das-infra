@@ -1,0 +1,20 @@
+# Ignore Terraform directories and files
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.*
+*.tfstate.backup
+*.tfvars
+*.tfvars.json
+
+# Ignore Terraform provider binaries
+.terraform/providers/
+
+# Ignore temporary editor files
+.*.swo
+.*.swp
+
+# Ignore any swap files created by editors
+*.swp
+*.swo
+
