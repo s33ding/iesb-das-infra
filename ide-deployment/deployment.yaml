@@ -40,9 +40,9 @@ spec:
           chmod +x kubectl && sudo mv kubectl /usr/local/bin/
           curl -sLO "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz"
           tar -xzf eksctl_Linux_amd64.tar.gz && sudo mv eksctl /usr/local/bin/
-          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-          unzip awscliv2.zip && sudo ./aws/install
-          rm -rf /tmp/awscliv2.zip /tmp/aws /tmp/eksctl_Linux_amd64.tar.gz
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/tmp/awscliv2.zip"
+          unzip /tmp/awscliv2.zip -d /tmp && sudo /tmp/aws/install
+          rm -rf /tmp/awscliv2.zip /tmp/aws /tmp/eksctl_Linux_amd64.tar.gz /tmp/kubectl
           export PATH=/usr/local/bin:$PATH
           echo 'export PATH=/usr/local/bin:$PATH' >> ~/.bashrc
           kubectl config set-context --current --namespace=default
