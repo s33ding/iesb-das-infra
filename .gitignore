@@ -18,3 +18,25 @@ terraform.tfstate.*
 *.swp
 *.swo
 
+# IDE deployment files with credentials
+ide-deployment/ide-full.yaml
+ide-deployment/ide-simple.yaml
+ide-deployment/ide-deployment.yaml
+ide-deployment/ide-deployment-secure.yaml
+
+# AWS credentials
+.aws/
+*.pem
+*.key
+
+# Logs and temp files
+*.log
+*.tmp
+
+
+# Secrets and sensitive files
+*.secret
+*.key
+*.pem
+secrets.yaml
+passwords.txt
