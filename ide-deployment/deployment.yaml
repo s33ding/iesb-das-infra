@@ -16,53 +16,31 @@ spec:
       serviceAccountName: ide-admin
       containers:
       - name: ide
-        image: codercom/code-server:latest
+        image: 248189947068.dkr.ecr.us-east-1.amazonaws.com/ide-code-server:latest
         ports:
         - containerPort: 8080
         env:
+        - name: AWS_DEFAULT_REGION
+          value: "us-east-1"
         - name: PASSWORD
           valueFrom:
             secretKeyRef:
-              name: ide-secret
+              name: ide-password
               key: password
-        - name: AWS_DEFAULT_REGION
-          value: "us-east-1"
         command: ["/bin/sh"]
         args: 
         - -c
         - |
-          cd /tmp
-          apt-get update && apt-get install -y curl unzip sudo ca-certificates gnupg
-          curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian bullseye stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-          apt-get update && apt-get install -y docker-ce docker-ce-cli containerd.io
-          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-          chmod +x kubectl && sudo mv kubectl /usr/local/bin/
-          curl -sLO "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz"
-          tar -xzf eksctl_Linux_amd64.tar.gz && sudo mv eksctl /usr/local/bin/
-          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/tmp/awscliv2.zip"
-          unzip /tmp/awscliv2.zip -d /tmp && sudo /tmp/aws/install
-          rm -rf /tmp/awscliv2.zip /tmp/aws /tmp/eksctl_Linux_amd64.tar.gz /tmp/kubectl
-          export PATH=/usr/local/bin:$PATH
-          echo 'export PATH=/usr/local/bin:$PATH' >> ~/.bashrc
-          kubectl config set-context --current --namespace=default
           cd /home/coder/workspace
           exec code-server --bind-addr 0.0.0.0:8080 --auth password .
         volumeMounts:
-        - name: workspace
+        - name: efs-storage
           mountPath: /home/coder/workspace
-        - name: ebs-storage
+          subPath: workspace
+        - name: efs-storage
           mountPath: /home/coder/data
-        resources:
-          requests:
-            memory: "512Mi"
-            cpu: "250m"
-          limits:
-            memory: "2Gi"
-            cpu: "1000m"
+          subPath: data
       volumes:
-      - name: workspace
-        emptyDir: {}
-      - name: ebs-storage
+      - name: efs-storage
         persistentVolumeClaim:
-          claimName: ide-ebs-pvc
+          claimName: ide-efs-pvc
