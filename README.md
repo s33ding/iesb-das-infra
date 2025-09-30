@@ -9,6 +9,21 @@ Infrastructure as Code for the Development Analysis System course at IESB Univer
 - **IDE**: Cloud-based development environment
 - **DNS**: ads.dataiesb.com domain configuration
 
+## Folder Structure
+
+```
+├── terraform/          # Infrastructure as Code
+│   ├── modules/        # Reusable Terraform modules
+│   │   ├── vpc/       # VPC module
+│   │   └── eks/       # EKS module
+│   ├── policies/      # IAM and security policies
+│   └── *.tf          # Main Terraform configuration
+├── kubernetes/        # Kubernetes deployments
+│   └── ide-deployment/ # IDE container deployment
+├── scripts/          # Utility scripts
+└── docs/            # Documentation
+```
+
 ## Components
 
 ### Infrastructure (Terraform)
@@ -27,13 +42,14 @@ Infrastructure as Code for the Development Analysis System course at IESB Univer
 
 1. **Deploy Infrastructure**:
    ```bash
+   cd terraform
    terraform init
    terraform apply
    ```
 
 2. **Deploy IDE**:
    ```bash
-   cd ide-deployment
+   cd kubernetes/ide-deployment
    kubectl apply -f .
    ```
 
@@ -41,7 +57,7 @@ Infrastructure as Code for the Development Analysis System course at IESB Univer
 
 ## Management
 
-- **Update secrets**: `./ide-deployment/update-secret.sh`
+- **Update secrets**: `./kubernetes/ide-deployment/update-secret.sh`
 - **Get password**: Stored in AWS Secrets Manager `ide-password`
 - **Kubectl context**: Pre-configured for `default` namespace
 

@@ -1,25 +1,3 @@
-<<<<<<< HEAD
-module "vpc" {
-  source = "./modules/vpc"
-
-  vpc_cidr     = var.vpc_cidr
-  project_name = var.project_name
-  az_count     = var.availability_zones_count
-}
-
-module "eks" {
-  source = "./modules/eks"
-
-  project_name        = var.project_name
-  subnet_ids          = concat(module.vpc.public_subnet_ids, module.vpc.private_subnet_ids)
-  private_subnet_ids  = module.vpc.private_subnet_ids
-  node_desired_size   = var.node_desired_size
-  node_max_size       = var.node_max_size
-  node_min_size       = var.node_min_size
-  node_instance_types = var.node_instance_types
-  allowed_cidr_blocks = var.allowed_cidr_blocks
-  eks_admin_users     = var.eks_admin_users
-=======
 resource "aws_vpc" "development-vpc" {
     cidr_block = "10.0.0.0/16"
     enable_dns_hostnames = true
@@ -225,5 +203,4 @@ resource "aws_acm_certificate" "ads_cert" {
 
 output "alb_hostname_command" {
   value = "kubectl get ingress ads-ingress -n ads-system -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'"
->>>>>>> 0075a18 (Complete IESB Development Analysis System infrastructure)
 }

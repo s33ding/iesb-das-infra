@@ -40,3 +40,4 @@ ide-deployment/ide-deployment-secure.yaml
 *.pem
 secrets.yaml
 passwords.txt
+cookies.txt
