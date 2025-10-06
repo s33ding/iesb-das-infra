@@ -11,7 +11,8 @@ metadata:
     alb.ingress.kubernetes.io/success-codes: '200,302'
 spec:
   rules:
-  - http:
+  - host: ads.dataiesb.com
+    http:
       paths:
       - path: /
         pathType: Prefix
