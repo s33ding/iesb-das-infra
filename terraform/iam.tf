@@ -16,7 +16,7 @@ resource "aws_secretsmanager_secret_version" "students_credentials" {
   secret_string = jsonencode({
     access_key_id     = aws_iam_access_key.students.id
     secret_access_key = aws_iam_access_key.students.secret
-    region           = "us-east-1"
+    region            = "us-east-1"
   })
 }
 

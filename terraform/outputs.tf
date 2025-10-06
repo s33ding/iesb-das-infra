@@ -8,6 +8,12 @@ output "public_subnet_ids" {
   value       = [aws_subnet.dev-subnet-1.id, aws_subnet.dev-subnet-2.id]
 }
 
+output "ide_password" {
+  description = "IDE password (sensitive)"
+  value       = random_password.ide_password.result
+  sensitive   = true
+}
+
 output "cluster_name" {
   description = "Name of the EKS cluster"
   value       = aws_eks_cluster.development_cluster.name

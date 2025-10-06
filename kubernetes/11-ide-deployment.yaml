@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ide-deployment
+  namespace: ads-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ide
+  template:
+    metadata:
+      labels:
+        app: ide
+    spec:
+      serviceAccountName: ide-admin
+      containers:
+      - name: ide
+        image: 248189947068.dkr.ecr.us-east-1.amazonaws.com/ide-code-server:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: AWS_DEFAULT_REGION
+          value: "us-east-1"
+        - name: PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: ide-password
+              key: password
+        command: ["/bin/sh"]
+        args: 
+        - -c
+        - |
+          cd /home/coder/workspace
+          exec code-server --bind-addr 0.0.0.0:8080 --auth password .
+        volumeMounts:
+        - name: secrets-store
+          mountPath: "/mnt/secrets-store"
+          readOnly: true
+      volumes:
+      - name: secrets-store
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: "ide-secrets"

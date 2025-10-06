@@ -1,7 +1,7 @@
 resource "aws_vpc" "development-vpc" {
-    cidr_block = "10.0.0.0/16"
-    enable_dns_hostnames = true
-    enable_dns_support = true
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_hostnames = true
+  enable_dns_support   = true
 }
 
 data "aws_internet_gateway" "existing_igw" {
@@ -68,25 +68,25 @@ resource "aws_security_group" "eks_nodes_sg" {
 }
 
 resource "aws_subnet" "dev-subnet-1" {
-    vpc_id = aws_vpc.development-vpc.id    
-    cidr_block = "10.0.10.0/24"
-    availability_zone = "us-east-1a"
-    map_public_ip_on_launch = true
-    
-    tags = {
-      "kubernetes.io/role/elb" = "1"
-    }
+  vpc_id                  = aws_vpc.development-vpc.id
+  cidr_block              = "10.0.30.0/24"
+  availability_zone       = "us-east-1a"
+  map_public_ip_on_launch = true
+
+  tags = {
+    "kubernetes.io/role/elb" = "1"
+  }
 }
 
 resource "aws_subnet" "dev-subnet-2" {
-    vpc_id = aws_vpc.development-vpc.id    
-    cidr_block = "10.0.20.0/24"
-    availability_zone = "us-east-1b"
-    map_public_ip_on_launch = true
-    
-    tags = {
-      "kubernetes.io/role/elb" = "1"
-    }
+  vpc_id                  = aws_vpc.development-vpc.id
+  cidr_block              = "10.0.40.0/24"
+  availability_zone       = "us-east-1b"
+  map_public_ip_on_launch = true
+
+  tags = {
+    "kubernetes.io/role/elb" = "1"
+  }
 }
 resource "aws_iam_role" "eks_cluster_role" {
   name = "eks-cluster-role"
@@ -173,33 +173,26 @@ resource "aws_eks_node_group" "development_nodes" {
   ]
 }
 resource "aws_eks_addon" "ebs_csi" {
-  cluster_name = aws_eks_cluster.development_cluster.name
-  addon_name   = "aws-ebs-csi-driver"
-  addon_version = "v1.35.0-eksbuild.1"
+  cluster_name                = aws_eks_cluster.development_cluster.name
+  addon_name                  = "aws-ebs-csi-driver"
+  addon_version               = "v1.35.0-eksbuild.1"
   resolve_conflicts_on_create = "OVERWRITE"
 }
 
 resource "aws_eks_addon" "vpc_cni" {
-  cluster_name = aws_eks_cluster.development_cluster.name
-  addon_name   = "vpc-cni"
-  addon_version = "v1.18.5-eksbuild.1"
+  cluster_name                = aws_eks_cluster.development_cluster.name
+  addon_name                  = "vpc-cni"
+  addon_version               = "v1.18.5-eksbuild.1"
   resolve_conflicts_on_create = "OVERWRITE"
 }
 resource "aws_eks_addon" "pod_identity" {
-  cluster_name = aws_eks_cluster.development_cluster.name
-  addon_name   = "eks-pod-identity-agent"
-  addon_version = "v1.3.4-eksbuild.1"
+  cluster_name                = aws_eks_cluster.development_cluster.name
+  addon_name                  = "eks-pod-identity-agent"
+  addon_version               = "v1.3.4-eksbuild.1"
   resolve_conflicts_on_create = "OVERWRITE"
 }
 
-resource "aws_acm_certificate" "ads_cert" {
-  domain_name       = "ads.dataiesb.com"
-  validation_method = "DNS"
-  
-  lifecycle {
-    create_before_destroy = true
-  }
-}
+
 
 output "alb_hostname_command" {
   value = "kubectl get ingress ads-ingress -n ads-system -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'"
