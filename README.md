@@ -1,10 +1,10 @@
 # iesb-das-infra
 
-Infraestrutura do sistema ADS (Analysis & Development System) do IESB, rodando no cluster EKS `dataiesb-cluster` em `us-east-1`.
+Infrastructure for the IESB ADS (Analysis & Development System), running on the `dataiesb-cluster` EKS cluster in `us-east-1`.
 
-O projeto fornece uma IDE cloud (Code Server) para que alunos e desenvolvedores trabalhem com Kubernetes, AWS e Docker diretamente do navegador, sem precisar configurar nada localmente.
+The project provides a cloud IDE (Code Server) so students and developers can work with Kubernetes, AWS, and Docker directly from the browser with zero local setup.
 
-## Arquitetura
+## Architecture
 
 ```
 Internet
@@ -17,55 +17,55 @@ Internet
     └── bayarea.dataiesb.com ──► ALB ──► Bay Area App (nginx)
 ```
 
-- Tudo roda no namespace `ads-system` em nodes spot `t3.medium`
-- Pods são isolados entre si via NetworkPolicy — bayarea não consegue acessar a IDE
-- A IDE tem acesso ao API server do Kubernetes e AWS APIs
-- Bay Area roda hardened: read-only, non-root, sem capabilities, sem egress
+- Everything runs in the `ads-system` namespace on dedicated spot `t3.medium` nodes
+- Pods are isolated from each other via NetworkPolicy — bayarea cannot reach the IDE
+- The IDE has access to the Kubernetes API server and AWS APIs
+- Bay Area runs hardened: read-only, non-root, no capabilities, no egress
 
-## Estrutura
+## Structure
 
 ```
 kubernetes/
 ├── cluster/
-│   └── ads-spot-nodegroup.yaml       # Node group spot (t3.medium, dedicado)
+│   └── ads-spot-nodegroup.yaml       # Spot node group (t3.medium, dedicated)
 ├── network/
-│   ├── network-policy.yaml           # Isolamento de rede do namespace
-│   └── README.md                     # Documentação de segurança
+│   ├── network-policy.yaml           # Namespace network isolation
+│   └── README.md                     # Security documentation
 └── ide-deployment/
-    ├── cognito-admin/                # App Streamlit para gerenciar usuários
+    ├── cognito-admin/                # Streamlit app for user management
     │   ├── cognito_admin.py
     │   ├── create-user.sh
     │   ├── policy.json
     │   └── README.md
-    ├── Dockerfile                    # Imagem Code Server + ferramentas
-    ├── namespace.yaml                # Namespace ads-system
-    ├── storage.yaml                  # StorageClass GP3 + PVC 50Gi
-    ├── rbac.yaml                     # ServiceAccount com acesso restrito
+    ├── Dockerfile                    # Code Server image + tools
+    ├── namespace.yaml                # ads-system namespace
+    ├── storage.yaml                  # GP3 StorageClass + 50Gi PVC
+    ├── rbac.yaml                     # ServiceAccount with restricted access
     ├── deployment.yaml               # IDE deployment
     ├── service.yaml                  # ClusterIP service
     ├── ingress.yaml                  # Ingress ads.dataiesb.com (Cognito)
     ├── bayarea-app.yaml              # App + Ingress bayarea.dataiesb.com
-    ├── deploy.py                     # Orquestrador de deploy completo
-    ├── setup-aws.py                  # Auto-configura Route53 + WAF
-    ├── build-and-push.sh             # Build Docker + push ECR
-    └── USER-GUIDE.md                 # Guia do usuário da IDE
+    ├── deploy.py                     # Full deployment orchestrator
+    ├── setup-aws.py                  # Auto-configures Route53 + WAF
+    ├── build-and-push.sh             # Docker build + ECR push
+    └── USER-GUIDE.md                 # IDE user guide (Portuguese)
 ```
 
-## Deploy Completo
+## Full Deploy
 
-### Pré-requisitos
+### Prerequisites
 
-- `eksctl`, `kubectl` e AWS CLI configurados
-- Python 3 com `boto3`
-- VPC CNI com NetworkPolicy habilitado
+- `eksctl`, `kubectl`, and AWS CLI configured
+- Python 3 with `boto3`
+- VPC CNI with NetworkPolicy enabled
 
-### 1. Criar o node group
+### 1. Create the node group
 
 ```bash
 eksctl create nodegroup -f kubernetes/cluster/ads-spot-nodegroup.yaml
 ```
 
-### 2. Build e push da imagem
+### 2. Build and push the image
 
 ```bash
 cd kubernetes/ide-deployment
@@ -79,32 +79,32 @@ cd kubernetes/ide-deployment
 python3 deploy.py
 ```
 
-Isso aplica todos os manifests, aguarda os rollouts e configura Route53 + WAF automaticamente.
+This applies all manifests, waits for rollouts, and configures Route53 + WAF automatically.
 
-## Segurança
+## Security
 
-| Camada | Descrição |
+| Layer | Description |
 |---|---|
-| Autenticação | Cognito (ads.dataiesb.com) |
-| WAF | Rate limiting + regras AWS managed (SQLi, XSS) |
-| NetworkPolicy | Deny-all padrão, permite apenas ALB → pods |
-| RBAC | Namespace-scoped, sem acesso a Ingress ou outros namespaces |
-| Container hardening | Bay Area: non-root, read-only, sem capabilities |
+| Authentication | Cognito (ads.dataiesb.com) |
+| WAF | Rate limiting + AWS managed rules (SQLi, XSS) |
+| NetworkPolicy | Deny-all default, allows only ALB → pods |
+| RBAC | Namespace-scoped, no access to Ingress or other namespaces |
+| Container hardening | Bay Area: non-root, read-only, no capabilities |
 
-## Gerenciamento de Usuários
+## User Management
 
-O app `cognito-admin` roda localmente e gerencia o whitelist do Cognito:
+The `cognito-admin` app runs locally and manages the Cognito whitelist:
 
 ```bash
 cd kubernetes/ide-deployment/cognito-admin
-./create-user.sh    # Cria IAM user + salva credenciais
+./create-user.sh    # Creates IAM user + stores credentials
 streamlit run cognito_admin.py
 ```
 
-Ver `cognito-admin/README.md` para detalhes.
+See `cognito-admin/README.md` for details.
 
-## Documentação
+## Documentation
 
-- [Guia do Usuário da IDE](kubernetes/ide-deployment/USER-GUIDE.md) — para os usuários da IDE
-- [Segurança de Rede](kubernetes/network/README.md) — políticas de rede e matriz de segurança
-- [Cognito Admin](kubernetes/ide-deployment/cognito-admin/README.md) — gerenciamento de usuários
+- [IDE User Guide](kubernetes/ide-deployment/USER-GUIDE.md) — for IDE users (Portuguese)
+- [Network Security](kubernetes/network/README.md) — network policies and security matrix
+- [Cognito Admin](kubernetes/ide-deployment/cognito-admin/README.md) — user management
