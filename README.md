@@ -17,7 +17,7 @@ Internet
     └── bayarea.dataiesb.com ──► ALB ──► Bay Area App (nginx)
 ```
 
-- Tudo roda no namespace `ads-system` em nodes spot `t3.small`
+- Tudo roda no namespace `ads-system` em nodes spot `t3.medium`
 - Pods são isolados entre si via NetworkPolicy — bayarea não consegue acessar a IDE
 - A IDE tem acesso ao API server do Kubernetes e AWS APIs
 - Bay Area roda hardened: read-only, non-root, sem capabilities, sem egress
@@ -27,7 +27,7 @@ Internet
 ```
 kubernetes/
 ├── cluster/
-│   └── ads-spot-nodegroup.yaml       # Node group spot (t3.small, taint dedicado)
+│   └── ads-spot-nodegroup.yaml       # Node group spot (t3.medium, dedicado)
 ├── network/
 │   ├── network-policy.yaml           # Isolamento de rede do namespace
 │   └── README.md                     # Documentação de segurança
