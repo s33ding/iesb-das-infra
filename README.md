@@ -1,165 +1,110 @@
-# IESB Development Analysis System Infrastructure
+# iesb-das-infra
 
-Infrastructure as Code for the Development Analysis System course at IESB University.
+Infraestrutura do sistema ADS (Analysis & Development System) do IESB, rodando no cluster EKS `dataiesb-cluster` em `us-east-1`.
 
-## Architecture
+O projeto fornece uma IDE cloud (Code Server) para que alunos e desenvolvedores trabalhem com Kubernetes, AWS e Docker diretamente do navegador, sem precisar configurar nada localmente.
 
-```mermaid
-graph TB
-    User[👤 Students] --> ADS[🌐 ads.dataiesb.com]
-    ADS --> IDE[💻 IDE Pod<br/>Code Server + kubectl<br/>Pre-configured for EKS]
-    
-    subgraph EKS[EKS Cluster - Training Environment]
-        IDE
-        PROD[🚀 Production Apps<br/>Deployed by Students]
-    end
-    
-    IDE -.->|kubectl deploy| PROD
-    
-    classDef user fill:#4caf50,stroke:#fff,stroke-width:2px,color:#fff
-    classDef ide fill:#326ce5,stroke:#fff,stroke-width:2px,color:#fff
-    classDef prod fill:#ff9900,stroke:#fff,stroke-width:2px,color:#fff
-    
-    class User user
-    class IDE ide
-    class PROD prod
-```
-
-### AWS Infrastructure Details
-
-```mermaid
-graph TB
-    subgraph "Internet"
-        User[👤 Students]
-        DNS[🌐 ads.dataiesb.com]
-    end
-
-    DOCKERFILE[Dockerfile<br/>Code Server + kubectl]
-
-    subgraph "AWS Cloud"
-        subgraph "Route 53"
-            R53[Route 53<br/>DNS Management]
-        end
-
-        subgraph "VPC (10.0.0.0/16)"
-            subgraph "Public Subnets"
-                IGW[Internet Gateway]
-                ALB[Application Load Balancer]
-            end
-
-            subgraph "EKS Cluster (v1.30)"
-                subgraph "Worker Nodes"
-                    subgraph "Namespace: ide"
-                        IDE[Code Server IDE<br/>Development Environment]
-                        PVC[Persistent Volume<br/>50GB GP3 EBS]
-                    end
-
-                    subgraph "System Components"
-                        CSI[Secrets Store CSI Driver]
-                        ALBC[AWS Load Balancer Controller<br/>Manages ALB]
-                    end
-                end
-            end
-        end
-
-        subgraph "AWS Services"
-            ECR[Elastic Container Registry<br/>IDE Images]
-            SM[Secrets Manager<br/>IDE Password]
-            IAM[IAM Roles & Policies<br/>IRSA/OIDC]
-        end
-    end
-
-    User --> DNS
-    DNS --> R53
-    R53 --> ALB
-    ALB --> IDE
-    ACM --> ALB
-    IGW --> ALB
-    IDE --> PVC
-    IDE --> CSI
-    CSI --> SM
-    ALBC -.->|manages| ALB
-    ECR --> IDE
-    IAM --> EKS
-    IAM --> IDE
-    DOCKERFILE --> ECR
-
-    classDef aws fill:#ff9900,stroke:#232f3e,stroke-width:2px,color:#fff
-    classDef k8s fill:#326ce5,stroke:#fff,stroke-width:2px,color:#fff
-    classDef user fill:#4caf50,stroke:#fff,stroke-width:2px,color:#fff
-    classDef build fill:#9c27b0,stroke:#fff,stroke-width:2px,color:#fff
-
-    class R53,ACM,ECR,SM,IAM,IGW,ALB aws
-    class EKS,IDE,CSI,ALBC,PVC k8s
-    class User,DNS user
-    class DOCKERFILE build
-```
-
-- **VPC**: Custom 10.0.0.0/16 network with public subnets
-- **EKS**: Managed Kubernetes cluster (v1.30) 
-- **IDE**: Cloud-based development environment
-- **DNS**: ads.dataiesb.com domain configuration
-
-## Folder Structure
+## Arquitetura
 
 ```
-├── terraform/          # Infrastructure as Code
-│   ├── modules/        # Reusable Terraform modules
-│   │   ├── vpc/       # VPC module
-│   │   └── eks/       # EKS module
-│   ├── policies/      # IAM and security policies
-│   └── *.tf          # Main Terraform configuration
-├── kubernetes/        # Kubernetes deployments
-│   └── ide-deployment/ # IDE container deployment
-└── docs/            # Documentation
+Internet
+    │
+    ├── ads.dataiesb.com ──────► ALB (Cognito + WAF) ──► IDE (Code Server)
+    │                                                        ├── kubectl
+    │                                                        ├── AWS CLI
+    │                                                        └── Docker
+    │
+    └── bayarea.dataiesb.com ──► ALB ──► Bay Area App (nginx)
 ```
 
-## Components
+- Tudo roda no namespace `ads-system` em nodes spot `t3.small`
+- Pods são isolados entre si via NetworkPolicy — bayarea não consegue acessar a IDE
+- A IDE tem acesso ao API server do Kubernetes e AWS APIs
+- Bay Area roda hardened: read-only, non-root, sem capabilities, sem egress
 
-### Infrastructure (Terraform)
-- EKS cluster with node groups
-- VPC with Internet Gateway and routing
-- Security groups and IAM roles
-- Route 53 DNS configuration
+## Estrutura
 
-### IDE Deployment (Kubernetes)
-- Code Server with development tools
-- 50GB GP3 EBS persistent storage
-- Docker, kubectl, AWS CLI, eksctl
-- Load balancer with public access
-- Secrets Store CSI Driver for AWS Secrets Manager integration
+```
+kubernetes/
+├── cluster/
+│   └── ads-spot-nodegroup.yaml       # Node group spot (t3.small, taint dedicado)
+├── network/
+│   ├── network-policy.yaml           # Isolamento de rede do namespace
+│   └── README.md                     # Documentação de segurança
+└── ide-deployment/
+    ├── cognito-admin/                # App Streamlit para gerenciar usuários
+    │   ├── cognito_admin.py
+    │   ├── create-user.sh
+    │   ├── policy.json
+    │   └── README.md
+    ├── Dockerfile                    # Imagem Code Server + ferramentas
+    ├── namespace.yaml                # Namespace ads-system
+    ├── storage.yaml                  # StorageClass GP3 + PVC 50Gi
+    ├── rbac.yaml                     # ServiceAccount com acesso restrito
+    ├── deployment.yaml               # IDE deployment
+    ├── service.yaml                  # ClusterIP service
+    ├── ingress.yaml                  # Ingress ads.dataiesb.com (Cognito)
+    ├── bayarea-app.yaml              # App + Ingress bayarea.dataiesb.com
+    ├── deploy.py                     # Orquestrador de deploy completo
+    ├── setup-aws.py                  # Auto-configura Route53 + WAF
+    ├── build-and-push.sh             # Build Docker + push ECR
+    └── USER-GUIDE.md                 # Guia do usuário da IDE
+```
 
-## Quick Start
+## Deploy Completo
 
-1. **Deploy Infrastructure**:
-   ```bash
-   cd terraform
-   terraform init
-   terraform apply
-   ```
+### Pré-requisitos
 
-2. **Deploy IDE**:
-   ```bash
-   cd kubernetes/ide-deployment
-   kubectl apply -f .
-   ```
+- `eksctl`, `kubectl` e AWS CLI configurados
+- Python 3 com `boto3`
+- VPC CNI com NetworkPolicy habilitado
 
-3. **Access IDE**: http://ads.dataiesb.com
+### 1. Criar o node group
 
-## Management
+```bash
+eksctl create nodegroup -f kubernetes/cluster/ads-spot-nodegroup.yaml
+```
 
-- **Update secrets**: `./kubernetes/ide-deployment/update-secret.sh`
-- **Get password**: Stored in AWS Secrets Manager `ide-password`
-- **Kubectl context**: Pre-configured for `default` namespace
+### 2. Build e push da imagem
 
-### Secrets Store CSI Driver
+```bash
+cd kubernetes/ide-deployment
+./build-and-push.sh
+```
 
-The deployment uses the AWS Secrets Store CSI Driver to securely retrieve the IDE password from AWS Secrets Manager. The CSI driver configuration is included in the Kubernetes manifests:
+### 3. Deploy
 
-- `14-secrets-store-csi.yaml`: SecretProviderClass configuration
-- Automatically syncs secrets from AWS Secrets Manager to Kubernetes secrets
-- IDE deployment mounts secrets via CSI volume and environment variables
+```bash
+cd kubernetes/ide-deployment
+python3 deploy.py
+```
 
-## Course Context
+Isso aplica todos os manifests, aguarda os rollouts e configura Route53 + WAF automaticamente.
 
-This infrastructure supports the Development Analysis System course, providing students with a cloud-based development environment for data analysis and system development projects.
+## Segurança
+
+| Camada | Descrição |
+|---|---|
+| Autenticação | Cognito (ads.dataiesb.com) |
+| WAF | Rate limiting + regras AWS managed (SQLi, XSS) |
+| NetworkPolicy | Deny-all padrão, permite apenas ALB → pods |
+| RBAC | Namespace-scoped, sem acesso a Ingress ou outros namespaces |
+| Container hardening | Bay Area: non-root, read-only, sem capabilities |
+
+## Gerenciamento de Usuários
+
+O app `cognito-admin` roda localmente e gerencia o whitelist do Cognito:
+
+```bash
+cd kubernetes/ide-deployment/cognito-admin
+./create-user.sh    # Cria IAM user + salva credenciais
+streamlit run cognito_admin.py
+```
+
+Ver `cognito-admin/README.md` para detalhes.
+
+## Documentação
+
+- [Guia do Usuário da IDE](kubernetes/ide-deployment/USER-GUIDE.md) — para os usuários da IDE
+- [Segurança de Rede](kubernetes/network/README.md) — políticas de rede e matriz de segurança
+- [Cognito Admin](kubernetes/ide-deployment/cognito-admin/README.md) — gerenciamento de usuários
