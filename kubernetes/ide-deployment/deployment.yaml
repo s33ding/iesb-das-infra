@@ -5,6 +5,8 @@ metadata:
   namespace: ads-system
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: ide
@@ -14,6 +16,13 @@ spec:
         app: ide
     spec:
       serviceAccountName: ide-admin
+      nodeSelector:
+        eks.amazonaws.com/nodegroup: ads-spot-t3-small
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: ads
+          effect: NoSchedule
       containers:
       - name: ide
         image: 248189947068.dkr.ecr.us-east-1.amazonaws.com/ide-code-server:latest

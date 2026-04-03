@@ -15,12 +15,16 @@ vpc:
         id: subnet-0c75a251de3ba1adf
 
 managedNodeGroups:
-  - name: ads-spot-t3-medium
-    instanceTypes: ["t3.medium"]
+  - name: ads-spot-t3-small
+    instanceTypes: ["t3.small"]
     spot: true
     minSize: 0
     maxSize: 1
-    desiredCapacity: 1
+    desiredCapacity: 0
     privateNetworking: true
     labels:
       nodegroup: ads-spot
+    taints:
+      - key: dedicated
+        value: ads
+        effect: NoSchedule
